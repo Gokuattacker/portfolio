@@ -1,30 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, X } from "lucide-react";
 import { GitHubIcon } from "@/components/icons";
 import { projects } from "@/lib/data";
 
 type Project = (typeof projects)[number];
 
-function ProjectCard({ project, size = "large" }: { project: Project; size?: "large" | "small" }) {
+function ProjectCard({ project, size = "large", onClick }: { project: Project; size?: "large" | "small"; onClick: () => void }) {
   const [hovered, setHovered] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [cardRect, setCardRect] = useState<DOMRect | null>(null);
-
-  const handleMouseEnter = (e: React.MouseEvent<HTMLElement>) => {
-    setHovered(true);
-    setCardRect(e.currentTarget.getBoundingClientRect());
-  };
 
   const handleMouseLeave = () => setHovered(false);
-
   const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
     setMousePos({ x: e.clientX, y: e.clientY });
   };
 
-  // Decide tooltip position: above or below cursor
   const tooltipWidth = 300;
   const tooltipHeight = 260;
   const padding = 16;
@@ -32,32 +24,24 @@ function ProjectCard({ project, size = "large" }: { project: Project; size?: "la
   let left = mousePos.x + padding;
   let top = mousePos.y - tooltipHeight / 2;
 
-  // Keep within viewport horizontally
   if (typeof window !== "undefined") {
-    if (left + tooltipWidth > window.innerWidth - 16) {
-      left = mousePos.x - tooltipWidth - padding;
-    }
+    if (left + tooltipWidth > window.innerWidth - 16) left = mousePos.x - tooltipWidth - padding;
     if (top < 8) top = 8;
-    if (top + tooltipHeight > window.innerHeight - 8) {
-      top = window.innerHeight - tooltipHeight - 8;
-    }
+    if (top + tooltipHeight > window.innerHeight - 8) top = window.innerHeight - tooltipHeight - 8;
   }
 
   return (
     <>
       <article
-        onMouseEnter={handleMouseEnter}
+        onMouseEnter={() => setHovered(true)}
         onMouseLeave={handleMouseLeave}
         onMouseMove={handleMouseMove}
-        className={`group relative flex items-start justify-between rounded-xl border border-white/10 bg-zinc-950/40 transition-all hover:border-white/30 hover:bg-white/[0.04] ${
+        onClick={onClick}
+        className={`group relative flex items-start justify-between rounded-xl border border-white/10 bg-zinc-950/40 transition-all hover:border-white/30 hover:bg-white/[0.04] cursor-pointer ${
           size === "large" ? "p-8" : "p-6"
         }`}
       >
-        <h3
-          className={`font-semibold text-white transition-colors group-hover:text-zinc-200 ${
-            size === "large" ? "text-xl" : "text-base"
-          }`}
-        >
+        <h3 className={`font-semibold text-white transition-colors group-hover:text-zinc-200 ${size === "large" ? "text-xl" : "text-base"}`}>
           {project.title}
         </h3>
         <div className="flex shrink-0 gap-3 pl-4">
@@ -65,6 +49,7 @@ function ProjectCard({ project, size = "large" }: { project: Project; size?: "la
             href={project.githubUrl}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
             className="text-zinc-500 transition-colors hover:text-white"
             aria-label={`${project.title} GitHub`}
           >
@@ -74,6 +59,7 @@ function ProjectCard({ project, size = "large" }: { project: Project; size?: "la
             href={project.liveUrl}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
             className="text-zinc-500 transition-colors hover:text-white"
             aria-label={`${project.title} live demo`}
           >
@@ -82,34 +68,19 @@ function ProjectCard({ project, size = "large" }: { project: Project; size?: "la
         </div>
       </article>
 
-      {/* Hover tooltip — rendered at fixed position relative to viewport */}
       {hovered && (
         <div
-          className="pointer-events-none fixed z-50 overflow-hidden rounded-xl border border-white/15 bg-zinc-950 shadow-2xl"
-          style={{
-            width: tooltipWidth,
-            left,
-            top,
-          }}
+          className="pointer-events-none fixed z-40 overflow-hidden rounded-xl border border-white/15 bg-zinc-950 shadow-2xl"
+          style={{ width: tooltipWidth, left, top }}
         >
           <div className="relative h-40 w-full overflow-hidden">
-            <Image
-              src={project.image}
-              alt={project.title}
-              fill
-              className="object-cover"
-            />
+            <Image src={project.image} alt={project.title} fill className="object-cover" />
           </div>
           <div className="p-4">
-            <p className="mb-3 text-xs leading-relaxed text-zinc-400">
-              {project.description}
-            </p>
+            <p className="mb-3 text-xs leading-relaxed text-zinc-400">{project.description}</p>
             <div className="flex flex-wrap gap-1.5">
               {project.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-zinc-300"
-                >
+                <span key={tag} className="rounded border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-zinc-300">
                   {tag}
                 </span>
               ))}
@@ -121,34 +92,123 @@ function ProjectCard({ project, size = "large" }: { project: Project; size?: "la
   );
 }
 
+function ProjectModal({ project, onClose }: { project: Project; onClose: () => void }) {
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handleKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+      document.body.style.overflow = "";
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-6 sm:p-10"
+      onClick={onClose}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" />
+
+      {/* Modal */}
+      <div
+        className="relative z-10 w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-white/15 bg-zinc-950 shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute right-5 top-5 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-zinc-900 text-zinc-400 transition-colors hover:border-white/30 hover:text-white"
+          aria-label="Close"
+        >
+          <X size={16} />
+        </button>
+
+        {/* Hero image */}
+        <div className="relative h-64 w-full overflow-hidden rounded-t-2xl sm:h-80">
+          <Image
+            src={project.image}
+            alt={project.title}
+            fill
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent" />
+        </div>
+
+        {/* Content */}
+        <div className="p-8 sm:p-10">
+          <h2 className="mb-4 text-2xl font-bold text-white sm:text-3xl">{project.title}</h2>
+          <p className="mb-8 text-base leading-relaxed text-zinc-400">{project.description}</p>
+
+          <div className="mb-8">
+            <p className="mb-3 text-xs font-medium uppercase tracking-widest text-zinc-500">Tech Stack</p>
+            <div className="flex flex-wrap gap-2">
+              {project.tags.map((tag) => (
+                <span key={tag} className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-sm font-medium text-zinc-200">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-4">
+            <a
+              href={project.githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition-all hover:border-white/30 hover:bg-white/10"
+            >
+              <GitHubIcon size={18} />
+              View on GitHub
+            </a>
+            <a
+              href={project.liveUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"
+            >
+              <ExternalLink size={18} />
+              Live Demo
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Projects() {
+  const [activeProject, setActiveProject] = useState<Project | null>(null);
   const featured = projects.filter((p) => p.featured);
   const others = projects.filter((p) => !p.featured);
 
   return (
-    <section id="projects" className="w-full px-6 py-28 sm:px-10 lg:px-16">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-16">
-          <p className="mb-2 text-sm font-medium uppercase tracking-widest text-zinc-400">
-            Projects
-          </p>
-          <h2 className="text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
-            Things I&apos;ve built
-          </h2>
-        </div>
+    <>
+      <section id="projects" className="w-full px-6 py-28 sm:px-10 lg:px-16">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-16">
+            <p className="mb-2 text-sm font-medium uppercase tracking-widest text-zinc-400">Projects</p>
+            <h2 className="text-3xl font-bold text-white sm:text-4xl lg:text-5xl">Things I&apos;ve built</h2>
+          </div>
 
-        <div className="mb-4 grid gap-4 lg:grid-cols-2">
-          {featured.map((project) => (
-            <ProjectCard key={project.title} project={project} size="large" />
-          ))}
-        </div>
+          <div className="mb-4 grid gap-4 lg:grid-cols-2">
+            {featured.map((project) => (
+              <ProjectCard key={project.title} project={project} size="large" onClick={() => setActiveProject(project)} />
+            ))}
+          </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          {others.map((project) => (
-            <ProjectCard key={project.title} project={project} size="small" />
-          ))}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {others.map((project) => (
+              <ProjectCard key={project.title} project={project} size="small" onClick={() => setActiveProject(project)} />
+            ))}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      {activeProject && (
+        <ProjectModal project={activeProject} onClose={() => setActiveProject(null)} />
+      )}
+    </>
   );
 }
