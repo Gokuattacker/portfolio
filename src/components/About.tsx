@@ -19,7 +19,6 @@ export default function About() {
               I&apos;m a passionate developer based in Guwhati,Assam
               focused on crafting clean, user-centered digital experiences.
               With a strong foundation in both frontend and backend development,
-              I enjoy turning complex problems into simple, elegant solutions.
             </p>
             <p className="text-lg leading-relaxed text-zinc-400">
               When I&apos;m not coding, you&apos;ll find me exploring new
