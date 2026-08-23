@@ -28,7 +28,27 @@ body {
 }
 
 @media (pointer: fine) {
-  body, a, button, input, textarea, select {
+  * {
     cursor: none !important;
   }
+}
+
+@keyframes modal-open {
+  0%   { opacity: 0; transform: scale(0.7) translateY(24px); }
+  60%  { opacity: 1; transform: scale(1.03) translateY(-4px); }
+  80%  { transform: scale(0.985) translateY(2px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes backdrop-in {
+  from { opacity: 0; backdrop-filter: blur(0px); }
+  to   { opacity: 1; backdrop-filter: blur(8px); }
+}
+
+.modal-animate {
+  animation: modal-open 0.45s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
+}
+
+.backdrop-animate {
+  animation: backdrop-in 0.3s ease forwards;
 }

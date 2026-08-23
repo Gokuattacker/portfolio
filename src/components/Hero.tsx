@@ -10,13 +10,13 @@ export default function Hero() {
       </div>
 
       <div className="relative z-10 mx-auto max-w-5xl text-center">
-        <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2 text-sm font-medium text-zinc-300">
+        {/* <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2 text-sm font-medium text-zinc-300">
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
           </span>
           Available for work
-        </p>
+        </p> */}
 
         <h1 className="mb-6 text-5xl font-bold leading-tight tracking-tight text-white sm:text-7xl lg:text-8xl">
           Hi, I&apos;m{" "}

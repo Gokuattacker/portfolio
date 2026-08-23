@@ -1,77 +1,145 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 
 export default function CustomCursor() {
-  const [position, setPosition] = useState({ x: -100, y: -100 });
-  const [isHovering, setIsHovering] = useState(false);
-  const [isClicking, setIsClicking] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const dotRef = useRef<HTMLDivElement>(null);
+  const ringRef = useRef<HTMLDivElement>(null);
+  const isHoveringRef = useRef(false);
+  const isClickingRef = useRef(false);
 
   useEffect(() => {
-    // Check if it's a touch device
-    if (window.matchMedia("(pointer: coarse)").matches) {
-      setIsTouchDevice(true);
-      return;
-    }
+    if (window.matchMedia("(pointer: coarse)").matches) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isVisible) setIsVisible(true);
-      setPosition({ x: e.clientX, y: e.clientY });
-      
+    const dot = dotRef.current;
+    const ring = ringRef.current;
+    if (!dot || !ring) return;
+
+    let transitionsEnabled = false;
+
+    const onMove = (e: MouseEvent) => {
+      const x = e.clientX;
+      const y = e.clientY;
+
+      // Position both elements using left/top (no transform-based positioning)
+      dot.style.left = `${x}px`;
+      dot.style.top = `${y}px`;
+      ring.style.left = `${x}px`;
+      ring.style.top = `${y}px`;
+
+      // Make dot visible on first move
+      dot.style.opacity = "1";
+
+      if (!transitionsEnabled) {
+        transitionsEnabled = true;
+        // Enable ring transitions after a brief delay so it doesn't
+        // animate from the initial off-screen position
+        setTimeout(() => {
+          if (ringRef.current) {
+            ringRef.current.style.transition =
+              "scale 250ms cubic-bezier(0.34,1.4,0.64,1), opacity 200ms ease";
+          }
+        }, 60);
+      }
+
+      // Detect hoverable elements
       const target = e.target as HTMLElement;
-      setIsHovering(
-        window.getComputedStyle(target).cursor === "pointer" ||
-        target.tagName.toLowerCase() === "a" ||
-        target.tagName.toLowerCase() === "button" ||
+      const hovering =
+        target.tagName === "A" ||
+        target.tagName === "BUTTON" ||
+        target.tagName === "ARTICLE" ||
         target.closest("a") !== null ||
-        target.closest("button") !== null
-      );
+        target.closest("button") !== null ||
+        target.closest("article") !== null ||
+        window.getComputedStyle(target).cursor === "pointer";
+
+      if (hovering !== isHoveringRef.current) {
+        isHoveringRef.current = hovering;
+        if (hovering) {
+          ring.style.opacity = "1";
+          ring.style.scale = "1";
+        } else {
+          ring.style.opacity = "0";
+          ring.style.scale = "0";
+        }
+      }
     };
 
-    const handleMouseDown = () => setIsClicking(true);
-    const handleMouseUp = () => setIsClicking(false);
-    const handleMouseLeave = () => setIsVisible(false);
-    const handleMouseEnter = () => setIsVisible(true);
+    const onDown = () => {
+      isClickingRef.current = true;
+      if (dot) dot.style.scale = "0.5";
+      if (ring) ring.style.scale = isHoveringRef.current ? "0.9" : "0";
+    };
 
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mousedown", handleMouseDown);
-    window.addEventListener("mouseup", handleMouseUp);
-    document.addEventListener("mouseleave", handleMouseLeave);
-    document.addEventListener("mouseenter", handleMouseEnter);
+    const onUp = () => {
+      isClickingRef.current = false;
+      if (dot) dot.style.scale = "1";
+      if (ring) ring.style.scale = isHoveringRef.current ? "1" : "0";
+    };
+
+    const onLeave = () => {
+      if (dot) dot.style.opacity = "0";
+      if (ring) ring.style.opacity = "0";
+    };
+    const onEnter = () => {
+      if (dot) dot.style.opacity = "1";
+    };
+
+    window.addEventListener("mousemove", onMove, { passive: true });
+    window.addEventListener("mousedown", onDown);
+    window.addEventListener("mouseup", onUp);
+    document.addEventListener("mouseleave", onLeave);
+    document.addEventListener("mouseenter", onEnter);
 
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mousedown", handleMouseDown);
-      window.removeEventListener("mouseup", handleMouseUp);
-      document.removeEventListener("mouseleave", handleMouseLeave);
-      document.removeEventListener("mouseenter", handleMouseEnter);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("mouseup", onUp);
+      document.removeEventListener("mouseleave", onLeave);
+      document.removeEventListener("mouseenter", onEnter);
     };
-  }, [isVisible]);
+  }, []);
 
-  if (isTouchDevice || !isVisible) return null;
+  const baseStyle: React.CSSProperties = {
+    position: "fixed",
+    pointerEvents: "none",
+    borderRadius: "50%",
+    mixBlendMode: "difference",
+    // Center the element on the cursor point
+    transform: "translate(-50%, -50%)",
+    // Start off-screen so there's never a flash at 0,0
+    left: "-9999px",
+    top: "-9999px",
+  };
 
   return (
     <>
       {/* Inner dot */}
       <div
-        className={`pointer-events-none fixed z-[9999] h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white mix-blend-difference transition-transform duration-150 ease-out ${
-          isClicking ? "scale-50" : "scale-100"
-        }`}
+        ref={dotRef}
         style={{
-          left: `${position.x}px`,
-          top: `${position.y}px`,
+          ...baseStyle,
+          width: "16px",
+          height: "16px",
+          background: "white",
+          zIndex: 9999,
+          transition: "scale 150ms ease-out, opacity 150ms ease",
+          opacity: 0,
         }}
       />
       {/* Outer ring */}
       <div
-        className={`pointer-events-none fixed z-[9998] h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-300 ease-out ${
-          isHovering ? "scale-150 bg-white/20 opacity-100 mix-blend-difference" : "scale-0 bg-transparent opacity-0"
-        } ${isClicking ? "scale-90" : ""}`}
+        ref={ringRef}
         style={{
-          left: `${position.x}px`,
-          top: `${position.y}px`,
+          ...baseStyle,
+          width: "56px",
+          height: "56px",
+          background: "rgba(255, 255, 255, 0.2)",
+          zIndex: 9998,
+          // No transition initially — enabled via JS after first position
+          transition: "none",
+          scale: "0",
+          opacity: 0,
         }}
       />
     </>

@@ -16,15 +16,14 @@ export default function About() {
         <div className="grid gap-12 lg:grid-cols-2">
           <div className="space-y-6">
             <p className="text-lg leading-relaxed text-zinc-400">
-              I&apos;m a passionate developer based in {siteConfig.location},
+              I&apos;m a passionate developer based in Guwhati,Assam
               focused on crafting clean, user-centered digital experiences.
               With a strong foundation in both frontend and backend development,
               I enjoy turning complex problems into simple, elegant solutions.
             </p>
             <p className="text-lg leading-relaxed text-zinc-400">
               When I&apos;m not coding, you&apos;ll find me exploring new
-              technologies, contributing to open source, or sharing what I learn
-              with the developer community.
+              technologies, playing games,travelling to offbeat locations,meeting new people. 
             </p>
             <div className="flex flex-wrap gap-3 pt-2">
               {["Problem solver", "Team player", "Fast learner", "Detail oriented"].map(

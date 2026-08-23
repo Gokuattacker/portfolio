@@ -91,7 +91,7 @@ export default function Contact() {
                 Get a detailed overview of my experience, skills, and education.
               </p>
               <a
-                href="/resume.pdf"
+                href="/Abhigyan_Goswami.pdf"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex w-full items-center justify-center rounded-xl bg-white px-6 py-4 text-sm font-semibold text-black transition-colors hover:bg-zinc-200"

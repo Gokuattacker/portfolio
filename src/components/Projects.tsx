@@ -1,81 +1,113 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import { ExternalLink, X } from "lucide-react";
 import { GitHubIcon } from "@/components/icons";
 import { projects } from "@/lib/data";
 
-type Project = (typeof projects)[number];
+type Project = Omit<(typeof projects)[number], "image"> & { image?: string };
 
 function ProjectCard({ project, size = "large", onClick }: { project: Project; size?: "large" | "small"; onClick: () => void }) {
   const [hovered, setHovered] = useState(false);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-
-  const handleMouseLeave = () => setHovered(false);
-  const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
-    setMousePos({ x: e.clientX, y: e.clientY });
-  };
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const initialMousePos = useRef({ x: 0, y: 0 });
 
   const tooltipWidth = 300;
-  const tooltipHeight = 260;
+  const tooltipHeight = project.image ? 260 : 120;
   const padding = 16;
 
-  let left = mousePos.x + padding;
-  let top = mousePos.y - tooltipHeight / 2;
+  const handleMouseEnter = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    initialMousePos.current = { x: e.clientX, y: e.clientY };
+    setHovered(true);
+  }, []);
 
-  if (typeof window !== "undefined") {
-    if (left + tooltipWidth > window.innerWidth - 16) left = mousePos.x - tooltipWidth - padding;
+  const handleMouseLeave = useCallback(() => setHovered(false), []);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    const tooltip = tooltipRef.current;
+    if (!tooltip) return;
+
+    let left = e.clientX + padding;
+    let top = e.clientY - tooltipHeight / 2;
+
+    if (left + tooltipWidth > window.innerWidth - 16) left = e.clientX - tooltipWidth - padding;
     if (top < 8) top = 8;
     if (top + tooltipHeight > window.innerHeight - 8) top = window.innerHeight - tooltipHeight - 8;
+
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+  }, []);
+
+  let initialLeft = initialMousePos.current.x + padding;
+  let initialTop = initialMousePos.current.y - tooltipHeight / 2;
+
+  if (typeof window !== "undefined") {
+    if (initialLeft + tooltipWidth > window.innerWidth - 16) initialLeft = initialMousePos.current.x - tooltipWidth - padding;
+    if (initialTop < 8) initialTop = 8;
+    if (initialTop + tooltipHeight > window.innerHeight - 8) initialTop = window.innerHeight - tooltipHeight - 8;
   }
 
   return (
     <>
       <article
-        onMouseEnter={() => setHovered(true)}
+        onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onMouseMove={handleMouseMove}
         onClick={onClick}
-        className={`group relative flex items-start justify-between rounded-xl border border-white/10 bg-zinc-950/40 transition-all hover:border-white/30 hover:bg-white/[0.04] cursor-pointer ${
-          size === "large" ? "p-8" : "p-6"
-        }`}
+        className={`group relative flex flex-col rounded-xl border border-white/10 bg-zinc-950/40 transition-all hover:border-white/30 hover:bg-white/[0.04] cursor-pointer overflow-hidden`}
       >
-        <h3 className={`font-semibold text-white transition-colors group-hover:text-zinc-200 ${size === "large" ? "text-xl" : "text-base"}`}>
-          {project.title}
-        </h3>
-        <div className="flex shrink-0 gap-3 pl-4">
-          <a
-            href={project.githubUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="text-zinc-500 transition-colors hover:text-white"
-            aria-label={`${project.title} GitHub`}
-          >
-            <GitHubIcon size={size === "large" ? 20 : 18} />
-          </a>
-          <a
-            href={project.liveUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="text-zinc-500 transition-colors hover:text-white"
-            aria-label={`${project.title} live demo`}
-          >
-            <ExternalLink size={size === "large" ? 20 : 18} />
-          </a>
+        {size === "large" && project.image && (
+          <div className="relative h-48 w-full shrink-0 overflow-hidden sm:h-64 border-b border-white/5">
+            <Image
+              src={project.image}
+              alt={project.title}
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              className="object-contain transition-transform duration-500 group-hover:scale-105"
+            />
+          </div>
+        )}
+        <div className={`flex w-full items-start justify-between ${size === "large" ? "p-6 sm:p-8" : "p-6"}`}>
+          <h3 className={`font-semibold text-white transition-colors group-hover:text-zinc-200 ${size === "large" ? "text-xl" : "text-base"}`}>
+            {project.title}
+          </h3>
+          <div className="flex shrink-0 gap-3 pl-4">
+            <a
+              href={project.githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="text-zinc-500 transition-colors hover:text-white"
+              aria-label={`${project.title} GitHub`}
+            >
+              <GitHubIcon size={size === "large" ? 20 : 18} />
+            </a>
+            {/* <a
+              href={project.liveUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="text-zinc-500 transition-colors hover:text-white"
+              aria-label={`${project.title} live demo`}
+            >
+              <ExternalLink size={size === "large" ? 20 : 18} />
+            </a> */}
+          </div>
         </div>
       </article>
 
       {hovered && (
         <div
+          ref={tooltipRef}
           className="pointer-events-none fixed z-40 overflow-hidden rounded-xl border border-white/15 bg-zinc-950 shadow-2xl"
-          style={{ width: tooltipWidth, left, top }}
+          style={{ width: tooltipWidth, left: initialLeft, top: initialTop }}
         >
-          <div className="relative h-40 w-full overflow-hidden">
-            <Image src={project.image} alt={project.title} fill className="object-cover" />
-          </div>
+          {project.image && (
+            <div className="relative h-40 w-full overflow-hidden bg-zinc-950/50">
+              <Image src={project.image} alt={project.title} fill sizes="300px" className="object-contain" />
+            </div>
+          )}
           <div className="p-4">
             <p className="mb-3 text-xs leading-relaxed text-zinc-400">{project.description}</p>
             <div className="flex flex-wrap gap-1.5">
@@ -109,11 +141,11 @@ function ProjectModal({ project, onClose }: { project: Project; onClose: () => v
       onClick={onClose}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" />
+      <div className="absolute inset-0 bg-black/80 backdrop-animate" />
 
       {/* Modal */}
       <div
-        className="relative z-10 w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-white/15 bg-zinc-950 shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+        className="modal-animate relative z-10 w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-white/15 bg-zinc-950 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}
@@ -126,18 +158,21 @@ function ProjectModal({ project, onClose }: { project: Project; onClose: () => v
         </button>
 
         {/* Hero image */}
-        <div className="relative h-64 w-full overflow-hidden rounded-t-2xl sm:h-80">
-          <Image
-            src={project.image}
-            alt={project.title}
-            fill
-            className="object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent" />
-        </div>
+        {project.image && (
+          <div className="relative h-64 w-full overflow-hidden rounded-t-2xl sm:h-80">
+            <Image
+              src={project.image}
+              alt={project.title}
+              fill
+              sizes="(max-width: 1024px) 100vw, 1024px"
+              className="object-contain"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent" />
+          </div>
+        )}
 
         {/* Content */}
-        <div className="p-8 sm:p-10">
+        <div className={`p-8 sm:p-10 ${!project.image ? "pt-12 sm:pt-14" : ""}`}>
           <h2 className="mb-4 text-2xl font-bold text-white sm:text-3xl">{project.title}</h2>
           <p className="mb-8 text-base leading-relaxed text-zinc-400">{project.description}</p>
 
@@ -162,7 +197,7 @@ function ProjectModal({ project, onClose }: { project: Project; onClose: () => v
               <GitHubIcon size={18} />
               View on GitHub
             </a>
-            <a
+            {/* <a
               href={project.liveUrl}
               target="_blank"
               rel="noopener noreferrer"
@@ -170,7 +205,7 @@ function ProjectModal({ project, onClose }: { project: Project; onClose: () => v
             >
               <ExternalLink size={18} />
               Live Demo
-            </a>
+            </a> */}
           </div>
         </div>
       </div>

@@ -8,7 +8,7 @@ import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen w-full flex-col bg-black">
+    <div className="relative z-10 flex min-h-screen w-full flex-col">
       <Navbar />
       <main className="w-full flex-1">
         <Hero />
